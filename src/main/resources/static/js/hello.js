@@ -15,18 +15,22 @@ angular.module('hello', ['ngRoute'])
     })
     .controller('home', function ($http) {
         var self = this;
-        $http.get('/resource/').then(function (response) {
+        $http.get('http://localhost:9000/').then(function (response) {
             self.greeting = response.data;
         })
     })
-    .controller('navigation', function ($rootScope, $http, $location) {
+    .controller('navigation', function ($rootScope, $http, $location, $route) {
         var self = this;
+        self.tab = function(route) {
+            return $route.current && route === $route.current.controller;
+        };
+
         var authenticate = function (credentials, callback) {
             var headers = credentials ? {authorization: "Basic" + btoa(credentials.username + ":" + credentials.password)}
                 : {};
             $http.get('user', {headers: headers}).then(function (response) {
                 $rootScope.authenticated = !!response.data.name;
-                callback && callback();
+                callback && callback($rootScope.authenticated);
             })
         };
 
@@ -34,13 +38,17 @@ angular.module('hello', ['ngRoute'])
         self.credentials = {};
 
         self.login = function () {
-            authenticate(self.credentials, function () {
-                if (!$rootScope.authenticated) {
+            authenticate(self.credentials, function (authenticated) {
+                if (authenticated) {
+                    console.log("Login succeeded");
                     $location.path("/");
                     self.error = false;
+                    $rootScope.authenticated = true;
                 } else {
+                    console.log("Login failed");
                     $location.path("/login");
                     self.error = true;
+                    $rootScope.authenticated = false;
                 }
             })
         };
